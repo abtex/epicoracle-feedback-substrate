@@ -4,7 +4,7 @@
 
 The authoritative all-PR validation contract and local command sequence live in
 [`.github/workflows/test.yml`](.github/workflows/test.yml). Keep `uv.lock` committed and in sync
-with `pyproject.toml`.
+with `pyproject.toml`. Follow [RELEASING.md](RELEASING.md) for every version or tag change.
 
 ## Maintaining this file
 

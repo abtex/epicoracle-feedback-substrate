@@ -285,7 +285,7 @@ Semantic versioning (`MAJOR.MINOR.PATCH`):
 * `MINOR` — additive change to the package or the workflow templates (new optional payload fields, new event types, new template files).
 * `PATCH` — bug fixes, doc-only changes, internal refactors.
 
-CHANGELOG.md captures every version. Satellites pin to a specific tag (`@v0.1.0`); upgrading is a deliberate commit in each satellite's `pyproject.toml`.
+CHANGELOG.md captures every version. Satellites pin to a specific tag (`@v0.1.0`); upgrading is a deliberate commit in each satellite's `pyproject.toml`. The authoritative preparation, validation, and immutable-tag procedure is [RELEASING.md](RELEASING.md).
 
 ## Anti-patterns to avoid
 

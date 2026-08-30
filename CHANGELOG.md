@@ -7,12 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.2.3] - 2026-08-30
+
+### Added
+
+- An executable release-version contract test that requires `pyproject.toml`, installed distribution metadata, and `epicoracle_feedback.__version__` to agree.
+- A release runbook defining version, lockfile, changelog, immutable-tag, and post-merge authorization requirements.
+
 ### Changed
 
+- Trinity dispatch now uses the OpenAI Responses API for Codex critique and Claude reconciliation; the existing `trinity` routing key remains compatible.
+- Agent-dispatch ownership and routing use durable role labels rather than person names.
+- The required PR gate now installs from the locked environment and runs lint, strict type checking, offline tests, and a package build.
 - GHCR sandbox pulls and image publishing are disabled by default while migration is deferred.
 - The reusable GHCR contract now derives package identity from the repository basename unless an explicit package name is provided.
 - Workflow templates now advertise the disabled GHCR artifact and the future activation seam instead of implying an always-on publisher.
 - Historical release notes below keep their original namespace references only where they preserve released history.
+
+### Fixed
+
+- Synchronized package metadata and runtime reporting at `0.2.3`. The merged `0.2.2` metadata value was never represented by an immutable tag and is not reused.
+
+### Compatibility
+
+- All package exports and call signatures present in `v0.2.1` remain available. This release only adds opt-in GHCR helpers; its sole change to an existing public value is correcting `__version__` from stale `0.2.0` to `0.2.3`.
+- Existing consumers pinned to immutable `v0.2.0` or `v0.2.1` remain unchanged until they deliberately update their dependency tag.
 
 ## [v0.2.1] - 2026-05-28
 
@@ -159,4 +178,7 @@ Per v2 brief's "Out of scope":
   `trinity_dispatch.py`, `answer_draft.py` (skeletons in v0.1; Wave B
   wires per-satellite).
 
-[v0.1.0]: https://github.com/cdonovan-abtex/epicoracle-feedback-substrate/releases/tag/v0.1.0
+[v0.2.3]: https://github.com/abtex/epicoracle-feedback-substrate/releases/tag/v0.2.3
+[v0.2.1]: https://github.com/abtex/epicoracle-feedback-substrate/releases/tag/v0.2.1
+[v0.2.0]: https://github.com/abtex/epicoracle-feedback-substrate/releases/tag/v0.2.0
+[v0.1.0]: https://github.com/abtex/epicoracle-feedback-substrate/releases/tag/v0.1.0
