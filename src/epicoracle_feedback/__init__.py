@@ -40,7 +40,7 @@ from epicoracle_feedback.payload import (
     FeedbackPayload,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.2.3"
 
 __all__ = [
     "DEFAULT_GHCR_TAG",
