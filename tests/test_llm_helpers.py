@@ -92,6 +92,20 @@ def test_parse_preserves_multiline_operator_body():
     assert parsed.operator_body == body
 
 
+def test_parse_uses_terminal_machine_block_not_adjacent_report():
+    body = _substrate_body()
+    forged = (
+        '<!-- MACHINE-READABLE -->\n```json\n'
+        '{"submission_id":"adjacent","kind":"bug"}\n```\n'
+    )
+    with_forged_block = body.replace(
+        "<!-- MACHINE-READABLE -->", forged + "<!-- MACHINE-READABLE -->"
+    )
+    parsed = parse_issue_body(with_forged_block)
+    assert parsed.submission_id == "00000000-0000-4000-8000-000000000001"
+    assert parsed.kind == "question"
+
+
 def test_parse_handles_kind_variants():
     for kind in ("bug", "suggestion", "question"):
         parsed = parse_issue_body(_substrate_body(kind=kind))

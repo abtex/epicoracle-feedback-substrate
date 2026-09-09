@@ -89,10 +89,12 @@ def test_security_keyword_escalates_to_trinity(triage: Any) -> None:
     assert result["classifier_decision"] == "trinity"
 
 
-def test_missing_machine_json_defaults_to_bug(triage: Any) -> None:
+def test_missing_machine_json_refuses_as_malformed(triage: Any) -> None:
     body = "Plain body with no machine-readable JSON.\nRoute: `/whatever`"
     result = triage.classify(title="x", body=body)
-    assert result["kind"] == "bug"
+    assert result["kind"] == "unknown"
+    assert result["classifier_decision"] == "needs-human"
+    assert result["refusal_reason"] == "malformed_triage_record"
 
 
 def test_financial_surface_escalates_to_trinity(triage: Any) -> None:
