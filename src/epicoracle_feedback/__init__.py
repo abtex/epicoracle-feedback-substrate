@@ -39,6 +39,7 @@ from epicoracle_feedback.payload import (
     FeedbackKind,
     FeedbackPayload,
 )
+from epicoracle_feedback.sanitization import SanitizationResult, sanitize_feedback
 
 __version__ = "0.2.3"
 
@@ -53,6 +54,7 @@ __all__ = [
     "FeedbackEvent",
     "FeedbackKind",
     "FeedbackPayload",
+    "SanitizationResult",
     "HttpEvent",
     "__version__",
     "check_idempotency",
@@ -64,5 +66,6 @@ __all__ = [
     "resolve_gh_token",
     "resolve_ghcr_image",
     "sandbox_pull_enabled",
+    "sanitize_feedback",
     "scan_for_credentials",
 ]

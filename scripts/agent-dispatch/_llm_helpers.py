@@ -97,15 +97,17 @@ def parse_issue_body(body: str) -> ParsedFeedbackIssue:
             "this issue may have been filed manually, outside the substrate"
         )
 
-    machine_match = _MACHINE_BLOCK_RE.search(body)
-    if not machine_match:
+    # The renderer appends its own machine block after the operator data. Use
+    # that terminal occurrence rather than a marker an operator placed in text.
+    machine_matches = list(_MACHINE_BLOCK_RE.finditer(body))
+    if not machine_matches:
         raise ValueError(
             "issue body missing <!-- MACHINE-READABLE --> JSON block; "
             "substrate version mismatch or non-substrate issue"
         )
 
     try:
-        machine = json.loads(machine_match.group("json"))
+        machine = json.loads(machine_matches[-1].group("json"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"machine-readable block isn't valid JSON: {exc}") from exc
 

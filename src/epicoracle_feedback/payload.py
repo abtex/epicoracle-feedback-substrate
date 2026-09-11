@@ -115,10 +115,11 @@ class FeedbackPayload(BaseModel):
 class FeedbackDispatchResult(BaseModel):
     """Outcome of one dispatch attempt.
 
-    Exactly one of (``issue_url``, ``queued_offline=True``) is set on the
-    success path. ``error`` is only populated on the fallback path and is
-    intended for audit only — the operator never sees it (the modal renders
-    the localized fallback message instead).
+    A dispatched report has either ``issue_url`` or ``queued_offline=True``.
+    A pre-persistence refusal has neither and sets ``refused=True`` with a
+    stable non-sensitive ``refusal_reason``. ``error`` is only populated on
+    the fallback path and is intended for audit only — the operator never sees
+    it (the modal renders the localized fallback message instead).
 
     On idempotency hit (the GitHub issue for this ``submission_id`` already
     exists), ``issue_url`` is set, ``queued_offline`` is False, and
@@ -132,6 +133,14 @@ class FeedbackDispatchResult(BaseModel):
     queued_offline: bool
     captured_at: str
     error: str | None = None
+    refused: bool = Field(
+        default=False,
+        description="True when intake refused the report before persistence or dispatch.",
+    )
+    refusal_reason: str | None = Field(
+        default=None,
+        description="Stable, non-sensitive reason for an explicit intake refusal.",
+    )
     deduplicated: bool = Field(
         default=False,
         description=(

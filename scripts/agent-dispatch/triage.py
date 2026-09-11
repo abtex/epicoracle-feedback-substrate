@@ -52,6 +52,17 @@ SECURITY_KEYWORDS = (
     "privilege",
 )
 
+# These are requests this classifier cannot safely turn into an autonomous
+# action.  They remain visible to a human as an explicit refusal, not a
+# successful-looking candidate.
+UNSUPPORTED_REQUESTS = (
+    "create a github issue",
+    "run this command",
+    "execute this",
+    "delete ",
+    "restart ",
+)
+
 
 def _read_env() -> tuple[str, str, str]:
     title = os.environ.get("ISSUE_TITLE", "")
@@ -61,12 +72,16 @@ def _read_env() -> tuple[str, str, str]:
 
 
 def _extract_kind(body: str) -> str | None:
-    """Parse the kind from the body's machine-readable JSON block."""
-    m = re.search(r"```json\s*(\{.*?\})\s*```", body, re.DOTALL)
-    if not m:
+    """Parse the terminal substrate-owned machine block, never user JSON."""
+    matches = re.findall(
+        r"<!-- MACHINE-READABLE -->\s*```json\s*(\{.*?\})\s*```",
+        body,
+        re.DOTALL,
+    )
+    if not matches:
         return None
     try:
-        machine = json.loads(m.group(1))
+        machine = json.loads(matches[-1])
     except json.JSONDecodeError:
         return None
     kind = machine.get("kind")
@@ -95,12 +110,22 @@ def _detect_security_keywords(body: str) -> list[str]:
 
 
 def classify(*, title: str, body: str) -> dict[str, Any]:
-    kind = _extract_kind(body) or "bug"
+    kind = _extract_kind(body)
     route = _extract_route(body)
     surface = _detect_surface(body, route)
     sec = _detect_security_keywords(body)
+    lowered = f"{title}\n{body}".lower()
 
-    if kind == "question":
+    refusal_reason: str | None = None
+    if kind is None:
+        kind = "unknown"
+        refusal_reason = "malformed_triage_record"
+    elif any(phrase in lowered for phrase in UNSUPPORTED_REQUESTS):
+        refusal_reason = "unsupported_request"
+
+    if refusal_reason is not None:
+        decision = "needs-human"
+    elif kind == "question":
         decision = "answer-draft"
     elif surface in HIGH_RISK_SURFACES or sec or kind == "suggestion":
         decision = "trinity"
@@ -112,6 +137,7 @@ def classify(*, title: str, body: str) -> dict[str, Any]:
         "touched_surface": surface,
         "security_keywords": sec,
         "classifier_decision": decision,
+        "refusal_reason": refusal_reason,
         "title": title[:120],
     }
 

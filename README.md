@@ -12,7 +12,7 @@ Operators submit feedback in-app. The substrate:
 2. Filed as a GitHub Issue in the satellite's repo with a machine-readable JSON tail.
 3. A workflow triggers agent-dispatch: triage → sandbox repro → fix-PR or trinity critique or answer-draft.
 4. Path-guard rejects PRs touching off-limits paths (`.github/workflows/**`, `Dockerfile`, `deploy/**`, `auth/**`, secrets).
-5. The product owner reviews + merges. Operator's status badge transitions through `submitted → processing → fix-ready → deployed`.
+5. The product owner reviews + merges. This substrate records only captured, queued, triaged, and proposed states; it never claims code changed, dispatched, delivered, accepted, or deployed merely because an issue or candidate exists.
 
 Fail-soft: any failure between operator-submit and GitHub-issue lands in a JSONL inbox; a replay script drains the inbox idempotently when connectivity returns.
 
@@ -21,7 +21,7 @@ Fail-soft: any failure between operator-submit and GitHub-issue lands in a JSONL
 ### Wave A — operator feedback
 
 - Fail-soft GitHub Issues dispatcher for in-app operator feedback.
-- Credential-pattern scanning before issue creation.
+- Credential-pattern scanning and shared sanitization before any inbox, issue, event, or workflow boundary.
 - Feedback-domain event hook for satellite-native audit sinks.
 - Agent-dispatch workflow templates and path guards.
 
@@ -144,7 +144,8 @@ async def submit_feedback(body: FeedbackSubmitBody, principal: Principal):
         browser_timestamp=body.browser_timestamp,
     )
 
-    # 3. Dispatch — fail-soft to JSONL inbox on any failure.
+    # 3. Dispatch — it repeats shared sanitization, then fail-softs to JSONL
+    # on a transport failure. An explicit refusal is not queued or dispatched.
     result = dispatch_feedback(
         payload,
         repo=settings.feedback_github_repo,
@@ -218,6 +219,24 @@ python scripts/replay-feedback-inbox.py \
 ```
 
 The script idempotently search-before-creates against GitHub, so re-runs are safe.
+
+### Offline closed-loop acceptance artifact
+
+Run this repository-local, synthetic-only harness to inspect sanitization,
+failed dispatch history, retry, durable triage record, candidate/refusal, and
+terminal replay idempotency without contacting any external service:
+
+```bash
+uv run --offline python scripts/synthetic-feedback-closed-loop.py \
+    --artifact /tmp/feedback-closed-loop.json
+cat /tmp/feedback-closed-loop.json
+```
+
+The first synthetic dispatch fails, the bounded retry creates one synthetic
+issue and one triage record, and a repeated retry is deduplicated. The artifact
+contains only sanitized context and explicitly says that its review candidate
+has not changed code, dispatched, delivered, or been accepted. Add
+`--permanent-failure` to inspect the terminal failure leg.
 
 ### Pausing agent dispatch in an emergency
 

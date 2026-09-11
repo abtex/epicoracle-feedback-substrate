@@ -54,6 +54,7 @@ from epicoracle_feedback.payload import (
     FeedbackKind,
     FeedbackPayload,
 )
+from epicoracle_feedback.sanitization import sanitize_feedback
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -261,6 +262,19 @@ def _fallback(
     )
 
 
+def _refuse(*, server_timestamp: str, reason: str) -> FeedbackDispatchResult:
+    """Return a truthful pre-persistence outcome without retaining input."""
+    return FeedbackDispatchResult(
+        issue_url=None,
+        issue_number=None,
+        queued_offline=False,
+        captured_at=server_timestamp,
+        error=None,
+        refused=True,
+        refusal_reason=reason,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
@@ -314,10 +328,23 @@ def dispatch_feedback(  # noqa: PLR0911  -- many early-return failure modes by d
     FeedbackDispatchResult
         Always returns; never raises. On success ``issue_url`` set,
         ``queued_offline=False``. On idempotency hit ``issue_url`` set
-        AND ``deduplicated=True``. On any failure ``queued_offline=True``
-        with ``error`` populated for audit.
+        AND ``deduplicated=True``. Intake refusals are explicit and are not
+        persisted. Transport failures set ``queued_offline=True`` with a
+        non-sensitive ``error`` populated for audit.
     """
     server_timestamp = _server_timestamp()
+    if not isinstance(payload, FeedbackPayload):
+        return _refuse(server_timestamp=server_timestamp, reason="malformed_report")
+
+    sanitized = sanitize_feedback(payload)
+    if sanitized.payload is None:
+        reason = sanitized.refusal_reason or "sanitization_failed"
+        # IDs are non-sensitive and allow the receiving audit sink to correlate
+        # the refusal without ever receiving the rejected text.
+        _emit("feedback.refused", payload, {"reason": reason})
+        return _refuse(server_timestamp=server_timestamp, reason=reason)
+
+    payload = sanitized.payload
     inbox = inbox_path or DEFAULT_INBOX_PATH
     token = resolve_gh_token(gh_token)
 
@@ -401,12 +428,13 @@ def dispatch_feedback(  # noqa: PLR0911  -- many early-return failure modes by d
         )
 
     if completed.returncode != 0:
-        stderr_tail = (completed.stderr or "").strip().splitlines()[-1:] or [""]
+        # stderr is an untrusted remote boundary and may echo credentials or
+        # private endpoint details.  Keep only a stable, non-sensitive code.
         return _fallback(
             payload=payload,
             inbox_path=inbox,
             server_timestamp=server_timestamp,
-            reason=f"gh exit {completed.returncode}: {stderr_tail[0]}",
+            reason=f"gh exit {completed.returncode}: dispatch failed",
         )
 
     parsed_issue_url, issue_number = _parse_issue_url(completed.stdout or "")
