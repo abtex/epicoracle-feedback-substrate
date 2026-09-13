@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional configured FastAPI feedback-router factory with typed submission,
+  dispatch-result, and arm-owned status contracts. It preserves the shared
+  credential scan, sanitization, idempotency, and fail-soft dispatch boundary
+  without adding FastAPI to core-library installs.
+
 ## [v0.2.3] - 2026-08-30
 
 ### Added
