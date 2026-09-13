@@ -11,7 +11,14 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+try:
+    from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+except ModuleNotFoundError as exc:
+    if exc.name == "fastapi":
+        raise ImportError(
+            "FastAPI router support requires 'epicoracle-feedback[fastapi]'."
+        ) from exc
+    raise
 
 from epicoracle_feedback.access_log_store import SqliteAccessLogStore
 from epicoracle_feedback.events import FeedbackEvent, emit_feedback_event

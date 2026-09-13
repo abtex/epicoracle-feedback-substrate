@@ -3,23 +3,27 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import cast
 from uuid import UUID, uuid4
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+import epicoracle_feedback
 from epicoracle_feedback import (
     FeedbackDispatchResult,
     FeedbackPayload,
     FeedbackRouterConfig,
     FeedbackStatus,
+    FeedbackStatusResolver,
     build_feedback_router,
 )
 
 
 def _app(
     dispatch: Callable[..., FeedbackDispatchResult],
-    resolver: Callable[[UUID], FeedbackStatus | None],
+    resolver: FeedbackStatusResolver,
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(
@@ -106,7 +110,11 @@ def test_invalid_submission_is_rejected_before_dispatch() -> None:
     assert calls == 0
 
 
-def test_sensitive_submission_is_rejected_before_dispatch() -> None:
+@pytest.mark.parametrize(
+    "field",
+    ["subject", "body", "route_path", "user_agent", "browser_timestamp"],
+)
+def test_sensitive_client_text_is_rejected_before_dispatch(field: str) -> None:
     calls = 0
 
     def dispatch(_payload: FeedbackPayload, *, repo: str) -> FeedbackDispatchResult:
@@ -115,7 +123,7 @@ def test_sensitive_submission_is_rejected_before_dispatch() -> None:
         return _result()
 
     sensitive = _submission()
-    sensitive["body"] = "Synthetic credential pattern: AKIAIOSFODNN7EXAMPLE"
+    sensitive[field] = "Synthetic credential pattern: AKIAIOSFODNN7EXAMPLE"
     with TestClient(_app(dispatch, _unknown_status)) as client:
         response = client.post("/api/feedback", json=sensitive)
 
@@ -170,6 +178,34 @@ def test_status_resolver_controls_status_response() -> None:
     }
 
 
+def test_async_status_resolver_controls_status_response() -> None:
+    def dispatch(_payload: FeedbackPayload, *, repo: str) -> FeedbackDispatchResult:
+        return _result()
+
+    async def resolve_status(_submission_id: UUID) -> FeedbackStatus:
+        return FeedbackStatus(state="fix-ready")
+
+    with TestClient(_app(dispatch, resolve_status)) as client:
+        response = client.get(f"/api/feedback/status/{uuid4()}")
+
+    assert response.status_code == 200
+    assert response.json()["state"] == "fix-ready"
+
+
+def test_invalid_status_resolver_result_returns_unknown() -> None:
+    def dispatch(_payload: FeedbackPayload, *, repo: str) -> FeedbackDispatchResult:
+        return _result()
+
+    def invalid_shape(_submission_id: UUID) -> FeedbackStatus:
+        return cast(FeedbackStatus, "not a status response")
+
+    with TestClient(_app(dispatch, invalid_shape)) as client:
+        response = client.get(f"/api/feedback/status/{uuid4()}")
+
+    assert response.status_code == 200
+    assert response.json()["state"] == "unknown"
+
+
 def test_failing_status_resolver_returns_unknown() -> None:
     def dispatch(_payload: FeedbackPayload, *, repo: str) -> FeedbackDispatchResult:
         return _result()
@@ -182,3 +218,25 @@ def test_failing_status_resolver_returns_unknown() -> None:
 
     assert response.status_code == 200
     assert response.json()["state"] == "unknown"
+
+
+def test_lazy_adapter_import_explains_missing_fastapi(monkeypatch: pytest.MonkeyPatch) -> None:
+    def missing_fastapi(_module_name: str) -> None:
+        raise ModuleNotFoundError("No module named 'fastapi'", name="fastapi")
+
+    monkeypatch.setattr(epicoracle_feedback, "import_module", missing_fastapi)
+
+    with pytest.raises(ImportError, match=r"epicoracle-feedback\[fastapi\]"):
+        _ = epicoracle_feedback.build_feedback_router
+
+
+def test_lazy_adapter_import_does_not_mask_other_missing_modules(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def missing_dependency(_module_name: str) -> None:
+        raise ModuleNotFoundError("No module named 'other_dependency'", name="other_dependency")
+
+    monkeypatch.setattr(epicoracle_feedback, "import_module", missing_dependency)
+
+    with pytest.raises(ModuleNotFoundError, match="other_dependency"):
+        _ = epicoracle_feedback.build_feedback_router

@@ -98,15 +98,22 @@ Trinity-converged from the v2 brief (`02_Projects/EpicOracle Family/Operator Fee
 
 ## Quickstart — consuming this substrate from a satellite
 
-### 1. Install the optional FastAPI adapter when needed
+### 1. Install the optional FastAPI routers when needed
 
-The core payload, dispatch, and event APIs do not require FastAPI. An arm that
-uses the HTTP router factory installs the optional extra:
+The core payload, dispatch, and event APIs do not require FastAPI. The
+`fastapi` extra covers both the feedback router factory and the access-log
+admin router:
 
 ```toml
 [project]
-dependencies = ["epicoracle-feedback[fastapi]>=0.2.3"]
+dependencies = ["epicoracle-feedback[fastapi]"]
 ```
+
+The feedback router factory is available only from this unreleased development
+candidate. Do not use a range such as `>=0.2.3` to select it: an approved
+immutable release must name the version before consumers can use a published
+locator. Until then, use the exact reviewed source or locally built artifact
+and lock it in the consumer's normal dependency process.
 
 ### 2. Pin the package in `pyproject.toml`
 
@@ -190,7 +197,9 @@ router = build_feedback_router(
 The adapter scans client text before dispatch, constructs the validated shared
 payload, and projects the existing fail-soft dispatch result. It does not read
 credentials or contact GitHub itself. A resolver failure also returns
-`unknown`, leaving status policy and storage with the arm.
+`unknown`, leaving status policy and storage with the arm. The adapter does not
+attach authentication: the arm must deliberately accept anonymous submission
+or attach its own dependency when including the router.
 
 ### 4. Install the workflow templates
 

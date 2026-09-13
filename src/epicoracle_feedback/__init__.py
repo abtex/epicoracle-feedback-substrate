@@ -111,6 +111,14 @@ _FASTAPI_EXPORTS = frozenset(
 def __getattr__(name: str) -> Any:
     """Load optional FastAPI exports only when an adapter consumer requests them."""
     if name in _FASTAPI_EXPORTS:
-        feedback_router = import_module("epicoracle_feedback.feedback_router")
+        try:
+            feedback_router = import_module("epicoracle_feedback.feedback_router")
+        except ModuleNotFoundError as exc:
+            if exc.name == "fastapi":
+                raise ImportError(
+                    "FastAPI router support requires "
+                    "'epicoracle-feedback[fastapi]'."
+                ) from exc
+            raise
         return getattr(feedback_router, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
