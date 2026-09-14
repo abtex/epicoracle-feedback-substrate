@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.3.0] - 2026-09-14
+
+### Added
+
+- Optional configured FastAPI feedback-router factory with typed submission,
+  dispatch-result, and arm-owned status contracts. The `fastapi` extra covers
+  this factory and the access-log admin router without adding FastAPI to
+  core-library installs.
+
+### Compatibility
+
+- Existing payload, dispatch, event, and access-log APIs remain available.
+  FastAPI is now an optional dependency: core consumers keep their existing
+  dependencies, while router consumers install the `fastapi` extra.
+
 ## [v0.2.3] - 2026-08-30
 
 ### Added
@@ -178,6 +193,7 @@ Per v2 brief's "Out of scope":
   `trinity_dispatch.py`, `answer_draft.py` (skeletons in v0.1; Wave B
   wires per-satellite).
 
+[v0.3.0]: https://github.com/abtex/epicoracle-feedback-substrate/releases/tag/v0.3.0
 [v0.2.3]: https://github.com/abtex/epicoracle-feedback-substrate/releases/tag/v0.2.3
 [v0.2.1]: https://github.com/abtex/epicoracle-feedback-substrate/releases/tag/v0.2.1
 [v0.2.0]: https://github.com/abtex/epicoracle-feedback-substrate/releases/tag/v0.2.0

@@ -98,16 +98,16 @@ wheels = [
 
 [[package]]
 name = "epicoracle-feedback"
-version = "0.2.3"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
-    { name = "fastapi" },
     { name = "httpx" },
     { name = "pydantic" },
 ]
 
 [package.optional-dependencies]
 dev = [
+    { name = "fastapi" },
     { name = "hatchling" },
     { name = "mypy" },
     { name = "pytest" },
@@ -115,10 +115,14 @@ dev = [
     { name = "pytest-socket" },
     { name = "ruff" },
 ]
+fastapi = [
+    { name = "fastapi" },
+]
 
 [package.metadata]
 requires-dist = [
-    { name = "fastapi", specifier = ">=0.111" },
+    { name = "fastapi", marker = "extra == 'dev'", specifier = ">=0.111" },
+    { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.111" },
     { name = "hatchling", marker = "extra == 'dev'", specifier = ">=1.24" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
@@ -128,7 +132,7 @@ requires-dist = [
     { name = "pytest-socket", marker = "extra == 'dev'", specifier = ">=0.7" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["fastapi", "dev"]
 
 [[package]]
 name = "fastapi"

@@ -39,11 +39,11 @@ The drift repaired by `v0.2.3` was reproduced before code changes:
 - **Masking condition:** the required tests did not compare installed package metadata with runtime `__version__`, and the release workflow only runs after a tag is pushed.
 - **User/operator-visible consequence:** installs from `main` reported distribution version `0.2.2` but runtime version `0.2.0`, while operators and consumers could only discover or pin the newest immutable release, `v0.2.1`.
 
-Compatibility inspection of the four current consumers found marketplace, compliance, and satellite-template pinned to `v0.2.0`, and the hub pinned to `v0.2.1`. Every package export they import remains present. Those existing pins are immutable and unaffected; adoption of `v0.2.3` remains an explicit consumer change.
+Compatibility inspection of the four current consumers found marketplace, compliance, and satellite-template pinned to `v0.2.0`, and the hub pinned to `v0.2.1`. Every package export they import remains present. Those existing pins are immutable and unaffected. The `0.2.3` metadata repair was never tagged, so it is not an immutable consumer locator and must not be reused.
 
-## Post-merge operator step for `v0.2.3`
+## Post-merge operator step for `v0.3.0`
 
-**Stop until the Captain gives fresh authorization to create the tag/release.** After authorization, run this from a clean substrate checkout. It validates the merged `origin/main` commit before creating the one new immutable tag:
+After the approved release-preparation source is merged, run this from a clean substrate checkout. It validates the merged `origin/main` commit before creating the one new immutable tag:
 
 ```bash
 git fetch --prune --tags origin
@@ -57,7 +57,7 @@ uv run --offline mypy src
 uv run --offline pytest --disable-socket --allow-unix-socket -v
 uv build --offline --no-build-isolation
 
-RELEASE_VERSION=0.2.3
+RELEASE_VERSION=0.3.0
 RELEASE_TAG="v${RELEASE_VERSION}"
 RELEASE_SHA="$(git rev-parse 'origin/main^{commit}')"
 
@@ -70,14 +70,14 @@ if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null
 fi
 
 git show --summary "$RELEASE_SHA"
-git tag -a "$RELEASE_TAG" "$RELEASE_SHA" -m "$RELEASE_TAG — release contract repair"
+git tag -a "$RELEASE_TAG" "$RELEASE_SHA" -m "$RELEASE_TAG — configured FastAPI adapter"
 git push origin "refs/tags/${RELEASE_TAG}"
 ```
 
 The final push is also the release command: [`.github/workflows/release.yml`](.github/workflows/release.yml) creates the GitHub Release from the matching changelog section. Verify it without modifying it:
 
 ```bash
-gh-axi release view v0.2.3 -R abtex/epicoracle-feedback-substrate
+gh-axi release view v0.3.0 -R abtex/epicoracle-feedback-substrate
 ```
 
 If the workflow does not create the release, stop and obtain new authorization before any manual release operation. Never move the tag to repair a failed release.

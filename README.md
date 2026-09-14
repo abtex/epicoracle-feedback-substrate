@@ -23,6 +23,7 @@ Fail-soft: any failure between operator-submit and GitHub-issue lands in a JSONL
 - Fail-soft GitHub Issues dispatcher for in-app operator feedback.
 - Credential-pattern scanning and shared sanitization before any inbox, issue, event, or workflow boundary.
 - Feedback-domain event hook for satellite-native audit sinks.
+- Optional configured FastAPI router factory for shared submit/status behavior.
 - Agent-dispatch workflow templates and path guards.
 
 ### Wave B — HTTP observability
@@ -97,7 +98,24 @@ Trinity-converged from the v2 brief (`02_Projects/EpicOracle Family/Operator Fee
 
 ## Quickstart — consuming this substrate from a satellite
 
-### 1. Pin the package in `pyproject.toml`
+### 1. Install the optional FastAPI routers when needed
+
+The core payload, dispatch, and event APIs do not require FastAPI. The
+`fastapi` extra covers both the feedback router factory and the access-log
+admin router:
+
+```toml
+[project]
+dependencies = ["epicoracle-feedback[fastapi]"]
+```
+
+The feedback router factory is scheduled for `v0.3.0` but remains unavailable
+from an immutable release until the reviewed source is merged and tagged. Do
+not use a range such as `>=0.3.0` to select it before that publication. Until
+then, use the exact reviewed source or locally built artifact and lock it in
+the consumer's normal dependency process.
+
+### 2. Pin the package in `pyproject.toml`
 
 ```toml
 [project]
@@ -108,7 +126,7 @@ dependencies = [
 
 Commit the resulting lockfile change so all environments resolve to the same git SHA.
 
-### 2. Use it from your router
+### 3. Use it from your router
 
 ```python
 from epicoracle_feedback import (
@@ -155,19 +173,47 @@ async def submit_feedback(body: FeedbackSubmitBody, principal: Principal):
     return result
 ```
 
-### 3. Install the workflow templates
+For the standard anonymous-feedback boundary, use the configured router
+factory instead of copying route models and scan/dispatch glue. The arm keeps
+its own status policy in the resolver:
+
+```python
+from epicoracle_feedback import (
+    FeedbackRouterConfig,
+    FeedbackStatus,
+    build_feedback_router,
+)
+
+router = build_feedback_router(
+    FeedbackRouterConfig(
+        satellite="example-arm",
+        satellite_version="1.0.0",
+        repository="example/feedback",
+    ),
+    status_resolver=lambda _submission_id: FeedbackStatus(state="unknown"),
+)
+```
+
+The adapter scans client text before dispatch, constructs the validated shared
+payload, and projects the existing fail-soft dispatch result. It does not read
+credentials or contact GitHub itself. A resolver failure also returns
+`unknown`, leaving status policy and storage with the arm. The adapter does not
+attach authentication: the arm must deliberately accept anonymous submission
+or attach its own dependency when including the router.
+
+### 4. Install the workflow templates
 
 Copy `templates/agent-dispatch.yml` to `.github/workflows/agent-dispatch.yml` in your satellite.
 Copy `templates/build-ghcr-image.yml` to `.github/workflows/build-ghcr-image.yml` only if you want the disabled GHCR placeholder; it does not publish while migration is deferred.
 Copy `templates/CODEOWNERS` to `.github/CODEOWNERS` and adjust if needed.
 
-### 4. Configure branch protection
+### 5. Configure branch protection
 
 ```bash
 ./scripts/setup-branch-protection.sh abtex/<your-satellite-repo>
 ```
 
-### 5. Set required org-level secrets
+### 6. Set required org-level secrets
 
 In your org settings, environments, `agent-dispatch`:
 
