@@ -109,11 +109,11 @@ admin router:
 dependencies = ["epicoracle-feedback[fastapi]"]
 ```
 
-The feedback router factory is available only from this unreleased development
-candidate. Do not use a range such as `>=0.2.3` to select it: an approved
-immutable release must name the version before consumers can use a published
-locator. Until then, use the exact reviewed source or locally built artifact
-and lock it in the consumer's normal dependency process.
+The feedback router factory is scheduled for `v0.3.0` but remains unavailable
+from an immutable release until the reviewed source is merged and tagged. Do
+not use a range such as `>=0.3.0` to select it before that publication. Until
+then, use the exact reviewed source or locally built artifact and lock it in
+the consumer's normal dependency process.
 
 ### 2. Pin the package in `pyproject.toml`
 
